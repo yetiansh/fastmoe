@@ -5,8 +5,6 @@ import torch
 
 from fmoe.distributed import DistributedGroupedDataParallel
 
-from megatron import mpu
-
 import torch
 from torch._utils import _flatten_dense_tensors, _unflatten_dense_tensors
 
@@ -62,7 +60,6 @@ class MemoryBuffer:
         buffer_tensor = self.data[start_index:end_index]
         buffer_tensor = buffer_tensor.view(shape)
         return buffer_tensor
-
 
 
 class DistributedDataParallel(DistributedGroupedDataParallel):
@@ -175,6 +172,7 @@ class DistributedDataParallel(DistributedGroupedDataParallel):
 
 
     def broadcast_params(self):
+        from megatron import mpu
         for param in self.module.parameters():
             torch.distributed.broadcast(param.data,
                                         src=mpu.get_data_parallel_src_rank(),
@@ -184,6 +182,7 @@ class DistributedDataParallel(DistributedGroupedDataParallel):
     def allreduce_gradients(self):
         """Reduce gradients across data parallel ranks."""
         # If we have buffers, simply reduce the data in the buffer.
+        from megatron import mpu
         if self._grad_buffers is not None:
             for _, buffer_ in self._grad_buffers.items():
                 buffer_.data /= mpu.get_data_parallel_world_size()
