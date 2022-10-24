@@ -40,7 +40,8 @@ class DistributedDataParallel(DistributedGroupedDataParallel):
     Fast MoE.
     """
 
-    def __init__(self, module):
+    def __init__(self, module, accumulate_allreduce_grads_in_fp32,
+                 use_contiguous_buffers):
         if _groups is None:
             _init()
         super().__init__(module, **_groups)
