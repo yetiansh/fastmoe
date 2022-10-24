@@ -56,7 +56,12 @@ def patch_forward_step(forward_step_func):
 def patch_model_provider(model_provider, gate=None):
     from megatron import get_args
 
-    def fmoefied_model_provider():
+    def fmoefied_model_provider(
+        pre_process=None,
+        post_process=None,
+        add_encoder=None,
+        add_decoder=None,
+    ):
         from .layers import fmoefy
         args = get_args()
         hhs = args.hidden_size * 4
@@ -64,8 +69,19 @@ def patch_model_provider(model_provider, gate=None):
         hhs = hhs // args.top_k
         assert hhs % args.tensor_model_parallel_size == 0
         hhs = hhs // args.tensor_model_parallel_size
+        kwargs_ = {
+            "pre_process": pre_process,
+            "post_process": post_process,
+            "add_encoder": add_encoder,
+            "add_decoder": add_decoder,
+        }
+        for key, val in kwargs_:
+            if val is None:
+                del kwargs_[key]
         return fmoefy(
-            model_provider(),
+            model_provider(
+                **kwargs_
+            ),
             num_experts=args.num_experts,
             hidden_hidden_size=hhs,
             top_k=args.top_k,
