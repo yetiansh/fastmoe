@@ -75,7 +75,7 @@ def patch_model_provider(model_provider, gate=None):
             "add_encoder": add_encoder,
             "add_decoder": add_decoder,
         }
-        for key, val in kwargs_:
+        for key, val in kwargs_.items():
             if val is None:
                 del kwargs_[key]
         return fmoefy(
