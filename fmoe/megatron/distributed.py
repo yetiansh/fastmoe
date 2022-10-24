@@ -211,3 +211,10 @@ class DistributedDataParallel(DistributedGroupedDataParallel):
                 for buf, synced in zip(grads, _unflatten_dense_tensors(
                         coalesced, grads)):
                     buf.copy_(synced)
+
+    def set_input_tensor(self, input_tensor):
+        """See megatron.model.transformer.set_input_tensor()"""
+        # this is just a placeholder and will be needed when model
+        # parallelism will be used
+        # self.language_model.set_input_tensor(input_tensor)
+        return self.module.set_input_tensor(input_tensor)
