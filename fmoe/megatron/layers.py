@@ -184,11 +184,24 @@ def fmoefy(
 
     args.hidden_hidden_size = hidden_hidden_size
 
-    for idx, l in enumerate(model.language_model.transformer.layers):
-        l.mlp = MegatronMLP(args, idx, gate=gate)
+    if hasattr(model, "language_model"):
+        if model.language_model.encoder:
+            for idx, l in enumerate(model.language_model.encoder.layers):
+                l.mlp = MegatronMLP(args, idx, gate=gate)
+
+        start_idx = len(model.language_model.encoder.layers) if model.language_model.encoder else 0
+        if model.language_model.decoder:
+            for idx, l in enumerate(model.language_model.decoder.layers):
+                l.mlp = MegatronMLP(args, start_idx + idx, gate=gate)
+        num_layers = len(model.language_model.encoder.layers) if model.language_model.encoder else 0
+        num_layers += len(model.language_model.decoder.layers) if model.language_model.decoder else 0
+        
+    else:
+        for idx, l in enumerate(model.backbone.transformer.layers):
+            l.mlp = MegatronMLP(args, idx, gate=gate)
+        num_layers = len(model.backbone.transformer.layers)
 
     # initialize gate hook
-    num_layers = len(model.language_model.transformer.layers)
     reset_gate_hook(num_layers)
 
     return model

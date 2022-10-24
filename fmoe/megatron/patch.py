@@ -26,9 +26,24 @@ def patch_forward_step(forward_step_func):
         while hasattr(model, 'module'):
             model = model.module
 
-        loss_list = [l.mlp.gate.get_loss(clear=False).view(1)
-                for l in model.language_model.transformer.layers
-                if l.mlp.gate.has_loss]
+        if hasattr(model, "language_model"):
+            loss_list = []
+            if model.language_model.encoder:
+                for l in model.language_model.encoder.layers:
+                    if l.mlp.gate.has_loss:
+                        loss_list.append(l.mlp.gate.get_loss(clear=False).view(1))
+
+            if model.language_model.decoder:
+                for l in model.language_model.decoder.layers:
+                    if l.mlp.gate.has_loss:
+                        loss_list.append(l.mlp.gate.get_loss(clear=False).view(1))
+        else:
+            loss_list = [
+                loss_list.append(l.mlp.gate.get_loss(clear=False).view(1))
+                for l in model.language_model.encoder.layers
+                if l.mlp.gate.has_loss
+            ]
+
         if len(loss_list) == 0:
             return output
 
@@ -75,9 +90,12 @@ def patch_model_provider(model_provider, gate=None):
             "add_encoder": add_encoder,
             "add_decoder": add_decoder,
         }
+        keys_to_delete = []
         for key, val in kwargs_.items():
             if val is None:
-                del kwargs_[key]
+                keys_to_delete.append(key)
+        for key in keys_to_delete:
+            del kwargs_[key]
         return fmoefy(
             model_provider(
                 **kwargs_
