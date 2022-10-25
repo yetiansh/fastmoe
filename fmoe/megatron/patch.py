@@ -1,6 +1,7 @@
 r"""
 Patching some of Megatron-LM's functions to create an MoE model
 """
+import os
 import torch
 
 
@@ -20,6 +21,8 @@ def patch_forward_step(forward_step_func):
         args = get_args()
         output = forward_step_func(data_iterator, model, input_tensor)
 
+        moe_expert_interval = int(os.getenv("MOE_EXPERT_INTERVAL", 1))
+
         if not is_pipeline_last_stage() or not args.balance_strategy:
             return output
 
@@ -29,19 +32,19 @@ def patch_forward_step(forward_step_func):
         if hasattr(model, "language_model"):
             loss_list = []
             if model.language_model.encoder:
-                for l in model.language_model.encoder.layers:
-                    if l.mlp.gate.has_loss:
+                for idx, l in enumerate(model.language_model.encoder.layers):
+                    if idx % moe_expert_interval == 0 and l.mlp.gate.has_loss:
                         loss_list.append(l.mlp.gate.get_loss(clear=False).view(1))
 
             if model.language_model.decoder:
-                for l in model.language_model.decoder.layers:
-                    if l.mlp.gate.has_loss:
+                for idx, l in enumerate(model.language_model.decoder.layers):
+                    if idx % moe_expert_interval == 0 and l.mlp.gate.has_loss:
                         loss_list.append(l.mlp.gate.get_loss(clear=False).view(1))
         else:
             loss_list = [
                 loss_list.append(l.mlp.gate.get_loss(clear=False).view(1))
-                for l in model.language_model.encoder.layers
-                if l.mlp.gate.has_loss
+                for idx, l in enumerate(model.language_model.encoder.layers)
+                if idx % moe_expert_interval == 0 and l.mlp.gate.has_loss
             ]
 
         if len(loss_list) == 0:

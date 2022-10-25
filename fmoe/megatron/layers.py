@@ -1,6 +1,7 @@
 r"""
 nn modules to replace Megatron's native ones
 """
+import os
 import math
 import numpy as np
 import torch
@@ -167,6 +168,8 @@ def fmoefy(
 
     args = get_args()
 
+    moe_expert_interval = int(os.getenv("MOE_EXPERT_INTERVAL", 1))
+
     # Set distributed_experts to None to use default setting in args
     if distributed_experts is not None:
         args.distributed_experts = distributed_experts
@@ -187,12 +190,14 @@ def fmoefy(
     if hasattr(model, "language_model"):
         if model.language_model.encoder:
             for idx, l in enumerate(model.language_model.encoder.layers):
-                l.mlp = MegatronMLP(args, idx, gate=gate)
+                if idx % moe_expert_interval == 0:
+                    l.mlp = MegatronMLP(args, idx, gate=gate)
 
         start_idx = len(model.language_model.encoder.layers) if model.language_model.encoder else 0
         if model.language_model.decoder:
             for idx, l in enumerate(model.language_model.decoder.layers):
-                l.mlp = MegatronMLP(args, start_idx + idx, gate=gate)
+                if idx % moe_expert_interval == 0:
+                    l.mlp = MegatronMLP(args, start_idx + idx, gate=gate)
         num_layers = len(model.language_model.encoder.layers) if model.language_model.encoder else 0
         num_layers += len(model.language_model.decoder.layers) if model.language_model.decoder else 0
         
