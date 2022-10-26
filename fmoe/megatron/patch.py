@@ -103,7 +103,7 @@ def patch_model_provider(model_provider, gate=None):
             model_provider(
                 **kwargs_
             ),
-            num_experts=args.num_experts,
+            num_experts=args.num_experts_fastmoe,
             hidden_hidden_size=hhs,
             top_k=args.top_k,
             gate=gate

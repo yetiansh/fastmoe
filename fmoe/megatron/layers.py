@@ -200,12 +200,13 @@ def fmoefy(
                     l.mlp = MegatronMLP(args, start_idx + idx, gate=gate)
         num_layers = len(model.language_model.encoder.layers) if model.language_model.encoder else 0
         num_layers += len(model.language_model.decoder.layers) if model.language_model.decoder else 0
-        
+
     else:
         for idx, l in enumerate(model.backbone.transformer.layers):
             l.mlp = MegatronMLP(args, idx, gate=gate)
         num_layers = len(model.backbone.transformer.layers)
 
+    print(model)
     # initialize gate hook
     reset_gate_hook(num_layers)
 
